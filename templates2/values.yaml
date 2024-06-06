@@ -1,0 +1,65 @@
+replicaCount: 1
+
+image:
+  repository: reportportal/service-api
+  tag: 5.5.0
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: false
+  annotations: {}
+  hosts:
+    - host: chart-example.local
+      paths: []
+  tls: []
+
+resources: {}
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+postgresql:
+  postgresqlUsername: reportportal
+  postgresqlPassword: reportportal
+  postgresqlDatabase: reportportal
+
+opensearch:
+  fullnameOverride: reportportal-opensearch
+  clusterName: reportportal-cluster
+  nodeGroup: nodes
+  replicas: 1
+  minimumMasterNodes: 1
+  opensearchJavaOpts: "-Xmx1g -Xms1g"
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "2Gi"
+    limits:
+      cpu: "1000m"
+      memory: "2Gi"
+
+rabbitmq:
+  auth:
+    username: reportportal
+    password: reportportal
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "100m"
+
+s3:
+  endpoint: "s3.amazonaws.com"
+  accessKey: "your-access-key"
+  secretKey: "your-secret-key"
+  bucketName: "your-bucket-name"
+  region: "your-region"
