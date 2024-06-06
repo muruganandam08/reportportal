@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "reportportal.fullname" . }}-config
+  labels:
+    {{- include "reportportal.labels" . | nindent 4 }}
+data:
+  application.yml: |
+    server:
+      port: 8080
+    database:
+      jdbc-url: jdbc:postgresql://{{ .Release.Name }}-postgresql:5432/reportportal
+      username: reportportal
+      password: reportportal
+    searchengine:
+      host: {{ .Release.Name }}-opensearch
+      port: 9200
+    rabbitmq:
+      addresses: amqp://reportportal:reportportal@{{ .Release.Name }}-rabbitmq:5672
+    s3:
+      endpoint: {{ .Values.s3.endpoint }}
+      accessKey: {{ .Values.s3.accessKey }}
+      secretKey: {{ .Values.s3.secretKey }}
+      bucketName: {{ .Values.s3.bucketName }}
+      region: {{ .Values.s3.region }}
