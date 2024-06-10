@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# Define the YAML file path
+YAML_FILE="example.yaml"
+
+# Read the value of 'service' key under 'name' using yq
+SERVICE_VALUE=$(yq e '.name.service' "$YAML_FILE")
+
+# Check if the service value is 'jdk' and fail the job if true
+if [ "$SERVICE_VALUE" == "jdk" ]; then
+  echo "Job failed because service is set to 'jdk'."
+  exit 1
+else
+  echo "Job passed. Service is not 'jdk'."
+fi
