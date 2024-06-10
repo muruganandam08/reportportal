@@ -13,3 +13,7 @@ if [ "$SERVICE_VALUE" == "jdk" ]; then
 else
   echo "Job passed. Service is not 'jdk'."
 fi
+
+
+NAME_VALUE=$(yq e '.entries[] | select(.service == "'"${TARGET_SERVICE}"'") | .name' "$YAML_FILE")
+
