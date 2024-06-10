@@ -17,3 +17,53 @@ fi
 
 NAME_VALUE=$(yq e '.entries[] | select(.service == "'"${TARGET_SERVICE}"'") | .name' "$YAML_FILE")
 
+
+pipeline {
+    agent any
+    stages {
+        stage('Install yq') {
+            steps {
+                script {
+                    // Install yq
+                    sh '''
+                    if ! command -v yq &> /dev/null
+                    then
+                        echo "yq could not be found, installing..."
+                        wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
+                        chmod +x /usr/local/bin/yq
+                    else
+                        echo "yq is already installed."
+                    fi
+                    '''
+                }
+            }
+        }
+        stage('Check Services') {
+            steps {
+                script {
+                    def yamlFile = 'example.yaml'
+                    def targetService = 'xddd'
+
+                    // Fetch all module names with the specified service value
+                    def moduleNames = sh(
+                        script: "yq e '.modules[] | select(.parameters.service == \"${targetService}\") | .name' ${yamlFile}",
+                        returnStdout: true
+                    ).trim()
+
+                    // Check if any modules were found
+                    if (moduleNames) {
+                        echo "Modules with service '${targetService}':"
+                        echo moduleNames
+
+                        // Fail the job if any module matches the target service
+                        error("Job failed because one or more modules have the service '${targetService}'.")
+                    } else {
+                        echo "No modules found with service '${targetService}'."
+                    }
+                }
+            }
+        }
+    }
+}
+
+
