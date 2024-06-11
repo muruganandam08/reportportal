@@ -66,4 +66,23 @@ pipeline {
     }
 }
 
+###
 
+modules:
+  - name: test_m
+    type: org
+    parameters:
+      service: xaaa
+  - name: uat_m
+    type: inc
+    parameters:
+      service: xddd
+  - name: dev_m
+    type: in
+    parameters:
+      service: xddd
+  - name: prod_m
+    type: ca
+    parameters:
+      service: xaaa
+  ###
