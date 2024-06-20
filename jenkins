@@ -1,10 +1,19 @@
 pipeline {
     agent any
 
+    parameters {
+        choice(name: 'MODULE', choices: ['a_datacentral', 'b_datasync', 'c_myaccess'], description: 'Select module to build')
+    }
+
     environment {
         CF_API = 'https://api.cf.your-region.hana.ondemand.com'
         CF_ORG = 'your-org'
         CF_SPACE = 'your-space'
+        NODE_VERSION = 'sapcloud35' // Assuming node-sapcloud35 is a specific version or environment
+    }
+
+    tools {
+        nodejs "${env.NODE_VERSION}" // Specify the node tool with the environment variable
     }
 
     stages {
@@ -16,77 +25,44 @@ pipeline {
             }
         }
 
-        stage('Install MTA Build Tool') {
+        stage('Preparation') {
             steps {
                 script {
-                    echo 'Installing MTA Build Tool'
+                    echo 'Preparing the environment'
+                    // Example: Install global dependencies or tools required
                     sh 'npm install -g mbt'
                 }
             }
         }
 
-        stage('Build and Test a_datacentral') {
-            steps {
-                dir('a_datacentral') {
-                    script {
-                        echo 'Building and Testing a_datacentral'
-                        sh 'npm cache clean --force'
-                        sh 'rm -rf node_modules package-lock.json'
-                        if (fileExists('package.json')) {
-                            sh 'npm install || (cat npm-debug.log && exit 1)'
-                            sh 'npm test'
-                            sh 'npm run build'
-                        } else {
-                            error "package.json not found in a_datacentral"
-                        }
-                    }
-                }
-            }
-        }
-
-        stage('Build and Test b_datasync') {
-            steps {
-                dir('b_datasync') {
-                    script {
-                        echo 'Building and Testing b_datasync'
-                        sh 'npm cache clean --force'
-                        sh 'rm -rf node_modules package-lock.json'
-                        if (fileExists('package.json')) {
-                            sh 'npm install || (cat npm-debug.log && exit 1)'
-                            sh 'npm test'
-                            sh 'npm run build'
-                        } else {
-                            error "package.json not found in b_datasync"
-                        }
-                    }
-                }
-            }
-        }
-
-        stage('Build and Test c_myaccess') {
-            steps {
-                dir('c_myaccess') {
-                    script {
-                        echo 'Building and Testing c_myaccess'
-                        sh 'npm cache clean --force'
-                        sh 'rm -rf node_modules package-lock.json'
-                        if (fileExists('package.json')) {
-                            sh 'npm install || (cat npm-debug.log && exit 1)'
-                            sh 'npm test'
-                            sh 'npm run build'
-                        } else {
-                            error "package.json not found in c_myaccess"
-                        }
-                    }
-                }
-            }
-        }
-
-        stage('Build MTA Archive') {
+        stage('Read MTA YAML') {
             steps {
                 script {
-                    echo 'Building MTA Archive'
-                    sh 'mbt build -t mta_archives'
+                    def yamlFile = readFile('datacentral/mta.yaml')
+                    def yamlData = readYaml text: yamlFile
+                    
+                    // Determine the module name based on selected choice
+                    def moduleName = ''
+                    switch (params.MODULE) {
+                        case 'a_datacentral':
+                            moduleName = 'a_datacentral'
+                            break
+                        case 'b_datasync':
+                            moduleName = 'b_datasync'
+                            break
+                        case 'c_myaccess':
+                            moduleName = 'c_myaccess'
+                            break
+                        default:
+                            error "Unsupported module: ${params.MODULE}"
+                    }
+                    
+                    echo "Selected module name: ${moduleName}"
+                    
+                    // Build MTA archive for the selected module
+                    dir('datacentral') {
+                        sh "mbt build -t mta_archives --mtar=${moduleName}.mtar"
+                    }
                 }
             }
         }
@@ -98,9 +74,21 @@ pipeline {
                     withCredentials([usernamePassword(credentialsId: 'cf-credentials', usernameVariable: 'CF_USERNAME', passwordVariable: 'CF_PASSWORD')]) {
                         sh """
                             cf login -a ${env.CF_API} -u $CF_USERNAME -p $CF_PASSWORD -o ${env.CF_ORG} -s ${env.CF_SPACE}
-                            cf deploy mta_archives/your-mta-archive.mtar
+                            cf deploy datacentral/mta_archives/${moduleName}.mtar
                         """
                     }
+                }
+            }
+        }
+
+        stage('Cleanup') {
+            steps {
+                script {
+                    echo 'Cleaning up the workspace'
+                    // Example: Remove temporary files or directories
+                    sh 'rm -rf datacentral/a_datacentral/node_modules'
+                    sh 'rm -rf datacentral/b_datasync/node_modules'
+                    sh 'rm -rf datacentral/c_myaccess/node_modules'
                 }
             }
         }
@@ -119,8 +107,8 @@ pipeline {
         }
         always {
             script {
-                echo 'Cleaning up'
-                // Any cleanup steps, if necessary
+                echo 'Pipeline finished, running always steps'
+                // Any additional cleanup steps, if necessary
             }
         }
     }
