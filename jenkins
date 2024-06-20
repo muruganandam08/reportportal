@@ -1,0 +1,127 @@
+pipeline {
+    agent any
+
+    environment {
+        CF_API = 'https://api.cf.your-region.hana.ondemand.com'
+        CF_ORG = 'your-org'
+        CF_SPACE = 'your-space'
+    }
+
+    stages {
+        stage('Initialize') {
+            steps {
+                script {
+                    echo 'Initializing Pipeline'
+                }
+            }
+        }
+
+        stage('Install MTA Build Tool') {
+            steps {
+                script {
+                    echo 'Installing MTA Build Tool'
+                    sh 'npm install -g mbt'
+                }
+            }
+        }
+
+        stage('Build and Test a_datacentral') {
+            steps {
+                dir('a_datacentral') {
+                    script {
+                        echo 'Building and Testing a_datacentral'
+                        sh 'npm cache clean --force'
+                        sh 'rm -rf node_modules package-lock.json'
+                        if (fileExists('package.json')) {
+                            sh 'npm install || (cat npm-debug.log && exit 1)'
+                            sh 'npm test'
+                            sh 'npm run build'
+                        } else {
+                            error "package.json not found in a_datacentral"
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Build and Test b_datasync') {
+            steps {
+                dir('b_datasync') {
+                    script {
+                        echo 'Building and Testing b_datasync'
+                        sh 'npm cache clean --force'
+                        sh 'rm -rf node_modules package-lock.json'
+                        if (fileExists('package.json')) {
+                            sh 'npm install || (cat npm-debug.log && exit 1)'
+                            sh 'npm test'
+                            sh 'npm run build'
+                        } else {
+                            error "package.json not found in b_datasync"
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Build and Test c_myaccess') {
+            steps {
+                dir('c_myaccess') {
+                    script {
+                        echo 'Building and Testing c_myaccess'
+                        sh 'npm cache clean --force'
+                        sh 'rm -rf node_modules package-lock.json'
+                        if (fileExists('package.json')) {
+                            sh 'npm install || (cat npm-debug.log && exit 1)'
+                            sh 'npm test'
+                            sh 'npm run build'
+                        } else {
+                            error "package.json not found in c_myaccess"
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Build MTA Archive') {
+            steps {
+                script {
+                    echo 'Building MTA Archive'
+                    sh 'mbt build -t mta_archives'
+                }
+            }
+        }
+
+        stage('Deploy to SAP BTP') {
+            steps {
+                script {
+                    echo 'Deploying to SAP BTP'
+                    withCredentials([usernamePassword(credentialsId: 'cf-credentials', usernameVariable: 'CF_USERNAME', passwordVariable: 'CF_PASSWORD')]) {
+                        sh """
+                            cf login -a ${env.CF_API} -u $CF_USERNAME -p $CF_PASSWORD -o ${env.CF_ORG} -s ${env.CF_SPACE}
+                            cf deploy mta_archives/your-mta-archive.mtar
+                        """
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            script {
+                echo 'Pipeline completed successfully!'
+            }
+        }
+        failure {
+            script {
+                echo 'Pipeline failed!'
+            }
+        }
+        always {
+            script {
+                echo 'Cleaning up'
+                // Any cleanup steps, if necessary
+            }
+        }
+    }
+}
