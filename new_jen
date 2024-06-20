@@ -1,0 +1,99 @@
+pipeline {
+    agent any
+
+    parameters {
+        choice(name: 'MODULE', choices: ['a', 'b', 'c'], description: 'Select module to build')
+    }
+
+    environment {
+        CF_API = 'https://api.cf.your-region.hana.ondemand.com'
+        CF_ORG = 'your-org'
+        CF_SPACE = 'your-space'
+        NODE_VERSION = 'sapcloud35' // Assuming node-sapcloud35 is a specific version or environment
+    }
+
+    tools {
+        nodejs "${env.NODE_VERSION}" // Specify the node tool with the environment variable
+    }
+
+    stages {
+        stage('Initialize') {
+            steps {
+                script {
+                    echo 'Initializing Pipeline'
+                }
+            }
+        }
+
+        stage('Preparation') {
+            steps {
+                script {
+                    echo 'Preparing the environment'
+                    // Example: Install global dependencies or tools required
+                    sh 'npm install -g mbt'
+                }
+            }
+        }
+
+        stage('Read MTA YAML') {
+            steps {
+                script {
+                    def yamlFile = readFile('datacenter/mta.yaml')
+                    def yamlData = readYaml text: yamlFile
+                    
+                    // Determine the module path based on selected choice
+                    def modulePath = "datacenter/${params.MODULE}"
+                    echo "Selected module path: ${modulePath}"
+                    
+                    // Execute mbt build -p cf command with explicit mta.yaml path
+                    sh "mbt build -p cf --mtar ${params.MODULE}.mtar --build-target ${modulePath}/ --mta ${env.WORKSPACE}/datacenter/mta.yaml"
+                }
+            }
+        }
+
+        stage('Deploy to SAP BTP') {
+            steps {
+                script {
+                    echo 'Deploying to SAP BTP'
+                    // Perform deployment steps here, if needed
+                    // For example, deploying an MTA archive
+                    // withCredentials([...]) {
+                    //     sh """
+                    //         cf login -a ${env.CF_API} -u $CF_USERNAME -p $CF_PASSWORD -o ${env.CF_ORG} -s ${env.CF_SPACE}
+                    //         cf deploy datacenter/mta_archives/${params.MODULE}.mtar
+                    //     """
+                    // }
+                }
+            }
+        }
+
+        stage('Cleanup') {
+            steps {
+                script {
+                    echo 'Cleaning up the workspace'
+                    // Example: Remove temporary files or directories
+                    sh 'rm -rf datacenter/*/node_modules' // Remove node_modules from all modules
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            script {
+                echo 'Pipeline completed successfully!'
+            }
+        }
+        failure {
+            script {
+                echo 'Pipeline failed!'
+            }
+        }
+        always {
+            script {
+                echo 'Pipeline finished, running always steps'
+                // Any additional cleanup steps, if necessary
+            }
+        }
+    }
+}
