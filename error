@@ -1,1 +1,16 @@
 Caused by: org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'org.sonarsource.scanner.lib.internal.IsolatedClassloader@45312be2-org.sonar.scanner.bootstrap.ScannerPluginInstaller': Unsatisfied dependency expressed through constructor parameter 0; nested exception is org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'org.sonarsource.scanner.lib.internal.IsolatedClassloader@45312be2-org.sonar.scanner.bootstrap.PluginFiles': Unsatisfied dependency expressed through constructor parameter 1; nested exception is org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'GlobalConfiguration' defined in org.sonar.scanner.bootstrap.GlobalConfigurationProvider: Unsatisfied dependency expressed through method 'provide' parameter 0; nested exception is org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'GlobalServerSettings' defined in org.sonar.scanner.bootstrap.GlobalServerSettingsProvider: Bean instantiation via factory method failed; nested exception is org.springframework.beans.BeanInstantiationException: Failed to instantiate [org.sonar.scanner.bootstrap.GlobalServerSettings]: Factory method 'provide' threw exception; nested exception is java.lang.IllegalStateException: Fail to request url: https://sapdevsecops-sonarqube-nonprod.apple.com/sonarqube/api/settings/values.protobuf
+
+
+export JAVA_OPTS="-Djavax.net.ssl.trustStore=/Library/Java/JavaVirtualMachines/jdk-11.0.10.jdk/Contents/Home/lib/security/cacerts -Djavax.net.ssl.trustStorePassword=changeit"
+
+
+
+sonar-scanner \
+  -Dsonar.projectKey=my_project \
+  -Dsonar.sources=src \
+  -Dsonar.host.url=https://secop-sonarqube-nonprod.pay.com/sonarqube \
+  -Dsonar.login=your_generated_token \
+  -Djavax.net.ssl.trustStore=/Library/Java/JavaVirtualMachines/jdk-11.0.10.jdk/Contents/Home/lib/security/cacerts \
+  -Djavax.net.ssl.trustStorePassword=changeit \
+  -Djavax.net.debug=ssl \
+  -X
