@@ -1,0 +1,27 @@
+#!/bin/bash
+
+# Path to the SonarQube scanner executable
+SONAR_SCANNER_BIN="/path/to/sonar-scanner/bin/sonar-scanner"
+
+# Path to the sonar-project.properties file
+SONAR_PROJECT_PROPERTIES="sonar-project.properties"
+
+# Check if the sonar-project.properties file exists
+if [ ! -f "$SONAR_PROJECT_PROPERTIES" ]; then
+  echo "Error: sonar-project.properties file not found!"
+  exit 1
+fi
+
+# Run the SonarQube scanner
+$SONAR_SCANNER_BIN -Dproject.settings=$SONAR_PROJECT_PROPERTIES
+
+# Capture the exit code
+EXIT_CODE=$?
+
+# Check if the scanner ran successfully
+if [ $EXIT_CODE -eq 0 ]; then
+  echo "SonarQube analysis completed successfully."
+else
+  echo "SonarQube analysis failed with exit code $EXIT_CODE."
+  exit $EXIT_CODE
+fi
